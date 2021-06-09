@@ -11,9 +11,16 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.SearchView;
+import androidx.core.widget.ContentLoadingProgressBar;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.codepath.recyclerviewlab.models.Article;
+import com.codepath.recyclerviewlab.networking.CallbackResponse;
 import com.codepath.recyclerviewlab.networking.NYTimesApiClient;
+
+import java.util.List;
 
 
 /**
@@ -24,6 +31,11 @@ import com.codepath.recyclerviewlab.networking.NYTimesApiClient;
 public class ArticleResultFragment extends Fragment {
 
     private NYTimesApiClient client = new NYTimesApiClient();
+    private RecyclerView rvArticles;
+    private ContentLoadingProgressBar progressSpinner;
+    // Store a member variable for the listener
+    private EndlessRecyclerViewScrollListener scrollListener;
+    private String savedQuery;
 
 
     /**
@@ -62,6 +74,26 @@ public class ArticleResultFragment extends Fragment {
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_article_result_list, container, false);
 
+        rvArticles = view.findViewById(R.id.list);
+        progressSpinner = view.findViewById(R.id.progress);
+        Context context = view.getContext();
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(context);
+        rvArticles.setLayoutManager(linearLayoutManager);
+        rvArticles.setAdapter(new ArticleResultsRecyclerViewAdapter());
+
+        // Retain an instance so that you can call `resetState()` for fresh searches
+        scrollListener = new EndlessRecyclerViewScrollListener(linearLayoutManager) {
+            @Override
+            public void onLoadMore(int page, int totalItemsCount, RecyclerView view) {
+                // Triggered only when new data needs to be appended to the list
+                // Add whatever code is needed to append new items to the bottom of the list
+                loadNextDataFromApi(page);
+            }
+        };
+        // Adds the scroll listener to RecyclerView
+        rvArticles.addOnScrollListener(scrollListener);
+
+
         return view;
     }
 
@@ -78,11 +110,49 @@ public class ArticleResultFragment extends Fragment {
 
     private void loadNewArticlesByQuery(String query) {
         Log.d("ArticleResultFragment", "loading articles for query " + query);
-        Toast.makeText(getContext(), "Loading articles for \'" + query + "\'", Toast.LENGTH_SHORT).show();
+        // Toast.makeText(getContext(), "Loading articles for \'" + query + "\'", Toast.LENGTH_SHORT).show();
+        progressSpinner.show();
+        savedQuery = query;
         // TODO(Checkpoint 3): Implement this method to populate articles
+        client.getArticlesByQuery(new CallbackResponse<List<Article>>() {
+            @Override
+            public void onSuccess(List<Article> models) {
+                Log.d("ArticleResultFragment", "Successfully loaded articles");
+                progressSpinner.hide();
+                ArticleResultsRecyclerViewAdapter adapter = (ArticleResultsRecyclerViewAdapter) rvArticles.getAdapter();
+                adapter.setNewArticles(models);
+                // notify dataset changed will tell your adapter that it's data has changed and refresh the view layout
+                adapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onFailure(Throwable error) {
+                Toast.makeText(getContext(), error.getMessage(), Toast.LENGTH_SHORT).show();
+                Log.d("ArticleResultFragment", "Failure loading articles " + error.getMessage());
+                progressSpinner.hide();
+            }
+        }, query);
     }
 
     private void loadArticlesByPage(final int page) {
         // TODO(Checkpoint 4): Implement this method to do infinite scroll
+    }
+    private void loadNextDataFromApi(final int page) {
+        client.getArticlesByQuery(new CallbackResponse<List<Article>>() {
+            @Override
+            public void onSuccess(List<Article> models) {
+                ArticleResultsRecyclerViewAdapter adapter = (ArticleResultsRecyclerViewAdapter) rvArticles.getAdapter();
+                adapter.addArticles(models);
+                adapter.notifyDataSetChanged();
+                Log.d("ArticleResultFragment", String.format("Successfully loaded articles from page %d", page));
+            }
+
+            @Override
+            public void onFailure(Throwable error) {
+                Log.d("ArticleResultFragment", "Failure load article " + error.getMessage());
+                Toast.makeText(getContext(), error.getMessage(), Toast.LENGTH_SHORT);
+            }
+            // TODO: you'll need to create a class member variable to save each query you search
+        }, savedQuery, page);
     }
 }
