@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -29,11 +30,21 @@
             android:textAppearance="?attr/textAppearanceHeadline6"
             android:textSize="22sp" />
 
+
         <TextView
             android:id="@+id/article_snippet"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="@dimen/text_margin"
             android:textAppearance="?attr/textAppearanceBody2" />
+        <ImageView
+            android:id="@+id/article_photo"
+            android:layout_width="match_parent"
+            android:layout_margin="@dimen/text_margin"
+            android:layout_height="wrap_content"
+            android:visibility="visible"
+            />
+
+
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

@@ -2,6 +2,8 @@ package com.codepath.recyclerviewlab.networking;
 
 import com.codepath.recyclerviewlab.models.Article;
 import com.codepath.recyclerviewlab.models.NYTimesArticlesAPIResponse;
+import com.codepath.recyclerviewlab.models.NYTimesPopularArticlesAPIResponse;
+import com.codepath.recyclerviewlab.models.PopularArticle;
 
 import java.util.List;
 
@@ -30,9 +32,9 @@ public class NYTimesApiClient {
     private static final String API_KEY = "0wt9nOgTZPML6fk4nfCyILiNfP0DzXLK";
 
     // returns the
-    private static final String API_FILTER = "headline, web_url, snippet, pub_date, word_count, print_page, print_section, section_name";
+    private static final String API_FILTER = "headline, web_url, multimedia, snippet, pub_date, word_count, print_page, print_section, section_name";
     private static final String BEGIN_DATE = "20100101";
-    private static final String SORT_BY = "relevance";
+    private static final String SORT_BY = "newest";
     private NYTimesService nyTimesService;
 
     public NYTimesApiClient() {
@@ -83,6 +85,34 @@ public class NYTimesApiClient {
             @Override
             public void onFailure(Call<NYTimesArticlesAPIResponse> call, Throwable t) {
                 articlesListResponse.onFailure(t);
+            }
+        });
+    }
+    /**
+     * gets the articles given a specific query, default page number to 0
+     * @param popularArticlesListResponse
+     * @param query
+     */
+    public void getPopularArticlesByQuery(final CallbackResponse<List<PopularArticle>> popularArticlesListResponse) {
+        // this hard codes to only get the articles sorted by "relevance" sort order
+        // you can actually alter the api query to have more search filters or change the sort order to search by "newest"
+        // see https://developer.nytimes.com/docs/articlesearch-product/1/routes/articlesearch.json/get for more information on API documentation
+        Call<NYTimesPopularArticlesAPIResponse> current = nyTimesService.getPopularArticlesByQuery(
+                "viewed", "7", API_KEY);
+        current.enqueue(new Callback<NYTimesPopularArticlesAPIResponse>() {
+            @Override
+            public void onResponse(Call<NYTimesPopularArticlesAPIResponse> call, Response<NYTimesPopularArticlesAPIResponse> response) {
+                NYTimesPopularArticlesAPIResponse model = response.body();
+                if (response.isSuccessful()) {
+                    popularArticlesListResponse.onSuccess(model.results);
+                } else {
+                    popularArticlesListResponse.onFailure(new Throwable("error with response code " + response.code() + " " + response.message()));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<NYTimesPopularArticlesAPIResponse> call, Throwable t) {
+                popularArticlesListResponse.onFailure(t);
             }
         });
     }
